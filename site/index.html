@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DevOps Interview Flashcards</title>
+<style>
+:root{--bg:#eef2f5;--card:#fff;--ink:#14202b;--mute:#566673;--acc:#0f6e6e;--line:#d3dce3;--tint:#e1f0ef}
+@media (prefers-color-scheme:dark){:root{--bg:#0f171d;--card:#17222a;--ink:#e4ecf1;--mute:#93a4b0;--acc:#5cc4c0;--line:#26343e;--tint:#1b3033}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:24px 16px 56px}
+h1{font-size:clamp(26px,5vw,36px);margin:0 0 4px;letter-spacing:-.02em}
+.sub{color:var(--mute);margin:0 0 18px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 14px;cursor:pointer;font:inherit;font-size:14px}
+.chip[aria-pressed=true]{background:var(--acc);color:#fff;border-color:var(--acc)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;min-height:240px;padding:24px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between}
+.card .tag{font-size:13px;color:var(--acc);font-weight:600}
+.card .txt{font-size:20px;line-height:1.5;margin:14px 0}
+.card.back{background:var(--tint)}
+.card .hint{font-size:13px;color:var(--mute)}
+.meta{display:flex;justify-content:space-between;font-size:14px;color:var(--mute);margin:12px 2px}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+button.b{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:9px 14px;cursor:pointer;font:inherit;font-size:15px}
+button.b.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
+.chip:focus-visible,.b:focus-visible,.card:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .25s}
+label.t{display:flex;gap:8px;align-items:center;font-size:14px;margin-top:14px;color:var(--mute)}
+</style>
+</head>
+<body>
+<main>
+<h1>DevOps interview flashcards</h1>
+<p class="sub">Tap the card to flip it. Your progress is saved in this browser.</p>
+<div class="chips" id="chips"></div>
+<div class="card" id="card" role="button" tabindex="0" aria-live="polite"></div>
+<div class="meta"><span id="pos"></span><span id="known"></span></div>
+<div class="bar"><i id="fill"></i></div>
+<div class="row">
+<button class="b" id="prev">Previous</button>
+<button class="b pri" id="got">I know this</button>
+<button class="b" id="again">Review again</button>
+<button class="b" id="next">Next</button>
+</div>
+<div class="row">
+<button class="b" id="shuffle">Shuffle</button>
+<button class="b" id="reset">Reset progress</button>
+</div>
+<label class="t"><input type="checkbox" id="hide"> Hide cards I already know</label>
+</main>
+<script src="questions.js"></script>
+<script>
+(function(){
+var KEY="flashcards-known-v1",known={};
+try{known=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){known={}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(known))}catch(e){}}
+var topics=["All"].concat(QUESTIONS.map(function(q){return q.t}).filter(function(v,i,a){return a.indexOf(v)===i}));
+var s={topic:"All",hide:false,deck:[],i:0,flip:false};
+var $=function(id){return document.getElementById(id)};
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function build(){
+ s.deck=QUESTIONS.filter(function(q){return(s.topic==="All"||q.t===s.topic)&&!(s.hide&&known[q.q])});
+ s.i=0;s.flip=false;render()}
+function render(){
+ var c=$("card"),q=s.deck[s.i];
+ $("chips").innerHTML="";
+ topics.forEach(function(t){var b=document.createElement("button");b.className="chip";b.textContent=t;b.setAttribute("aria-pressed",t===s.topic);b.onclick=function(){s.topic=t;build()};$("chips").appendChild(b)});
+ var inTopic=QUESTIONS.filter(function(x){return s.topic==="All"||x.t===s.topic});
+ var k=inTopic.filter(function(x){return known[x.q]}).length;
+ $("known").textContent="Known: "+k+" of "+inTopic.length;
+ $("fill").style.width=(inTopic.length?Math.round(k/inTopic.length*100):0)+"%";
+ c.innerHTML="";
+ if(!q){c.className="card";var m=document.createElement("div");m.className="txt";m.textContent=s.hide?"You know every card in this topic. Untick the box to review them again.":"No cards.";c.appendChild(m);$("pos").textContent="0 / 0";return}
+ c.className="card"+(s.flip?" back":"");
+ var tag=document.createElement("div");tag.className="tag";tag.textContent=q.t+(s.flip?" · answer":" · question");
+ var txt=document.createElement("div");txt.className="txt";txt.textContent=s.flip?q.a:q.q;
+ var h=document.createElement("div");h.className="hint";h.textContent=s.flip?"Tap to see the question":"Tap to reveal the answer";
+ c.appendChild(tag);c.appendChild(txt);c.appendChild(h);
+ $("pos").textContent=(s.i+1)+" / "+s.deck.length}
+function go(n){if(!s.deck.length)return;s.i=(s.i+n+s.deck.length)%s.deck.length;s.flip=false;render()}
+$("card").onclick=function(){if(s.deck.length){s.flip=!s.flip;render()}};
+$("card").onkeydown=function(e){if(e.key===" "||e.key==="Enter"){e.preventDefault();$("card").onclick()}};
+document.onkeydown=function(e){if(e.key==="ArrowRight")go(1);if(e.key==="ArrowLeft")go(-1)};
+$("next").onclick=function(){go(1)};
+$("prev").onclick=function(){go(-1)};
+$("again").onclick=function(){var q=s.deck[s.i];if(q){delete known[q.q];save()}go(1)};
+$("got").onclick=function(){var q=s.deck[s.i];if(!q)return;known[q.q]=true;save();
+ if(s.hide){s.deck.splice(s.i,1);if(s.i>=s.deck.length)s.i=0;s.flip=false;render()}else go(1)};
+$("shuffle").onclick=function(){shuffle(s.deck);s.i=0;s.flip=false;render()};
+$("reset").onclick=function(){if(confirm("Clear all saved progress?")){known={};save();build()}};
+$("hide").onchange=function(e){s.hide=e.target.checked;build()};
+build();
+})();
+</script>
+</body>
+</html>

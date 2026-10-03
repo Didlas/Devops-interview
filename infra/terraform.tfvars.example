@@ -1,0 +1,2 @@
+github_repo = "your-github-username/devops-flashcards"
+# create_oidc_provider = false   # set if the GitHub OIDC provider already exists in your account

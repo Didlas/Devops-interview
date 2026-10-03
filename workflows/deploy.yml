@@ -1,0 +1,41 @@
+name: Validate and deploy
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check questions data
+        run: |
+          node -e "const s=require('fs').readFileSync('site/questions.js','utf8');const q=new Function(s+';return QUESTIONS')();if(!q.length||q.some(x=>!x.t||!x.q||!x.a))process.exit(1);console.log(q.length+' questions OK')"
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform fmt and validate
+        working-directory: infra
+        run: |
+          terraform fmt -check
+          terraform init -backend=false
+          terraform validate
+
+  deploy:
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Upload site to S3
+        run: aws s3 sync site/ "s3://${{ vars.BUCKET_NAME }}" --delete
+      - name: Invalidate CloudFront cache
+        run: aws cloudfront create-invalidation --distribution-id "${{ vars.DISTRIBUTION_ID }}" --paths "/*"
